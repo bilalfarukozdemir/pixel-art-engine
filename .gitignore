@@ -2,3 +2,5 @@ node_modules/
 dist/
 dist-demo/
 demo-out/
+# telifli kaynak kitaplar depoya girmez (bkz. recipes/SOURCES.md)
+*.pdf

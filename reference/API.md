@@ -218,3 +218,81 @@ Somut referans noktaları (tümü bu projede gerçekten denendi):
   üretilmiş çok-karakterli bir sahne örneği.
 - `../demo/build.ts` — birden fazla sahneyi `Catalog`'a ekleyip atlas + PNG
   olarak kaydetme.
+
+## Pixel Logic araçları (Ekim 2026 eki)
+
+Kitaptan çıkarılan tekniklerin motor karşılıkları. Hepsi `src/index.ts`'ten
+export edilir, runtime-agnostiktir, RNG kullanmaz. Tarifler: ../GUIDE.md "Teknik temelleri".
+Testler: ../tests/pixel-logic.test.mjs; görsel: ../demo/pixel-logic.ts.
+
+### Renk (`src/core/color.ts`, `src/palette/index.ts`)
+
+| Fonksiyon | Ne için |
+|---|---|
+| `toHsv(c)` / `fromHsv(h,s,v,a?)` | HSV dönüşümü (h 0..360, s/v 0..1). |
+| `luma(c)` | Algısal parlaklık 0..1. Rampa sırası, kontrast. |
+| `colorDistance(a,b)` | Ağırlıklı RGB uzaklığı; ~20 altı küçük sprite'ta ayırt edilmez. |
+| `hueRamp(base, {steps=5, hueShift=36, darkest=0.2, lightest=0.97, saturation='arc'})` | Koyudan açığa rampa. Gölge `SHADOW_HUE` (255°), ışık `HIGHLIGHT_HUE` (60°) yönüne en kısa yoldan kayar. `base` ortada (index `floor(steps/2)`) aynen durur; luma soldan sağa artar. |
+| `hueToward(h, target, deg)` | Tonu hedefe en fazla deg derece yaklaştırır. |
+| `inkOf(c, value=0.16)` | Saf siyah yerine koyu, renkli kontur/göz tonu. |
+| `paletteOf(p)` | Benzersiz opak renkler, koyudan açığa. |
+| `nearestColor(c, palette)` / `quantize(p, palette, alphaCut=128)` | Palete oturt. `quantize` yerinde değiştirir. |
+
+### Çizgi (`src/lineart/index.ts`)
+
+| Fonksiyon | Ne için |
+|---|---|
+| `stairs(p,x,y,stepW,stepH,count,c,dir=1)` | Eşit adımlı merdiven çizgi; stepW veya stepH 1 olmalı. Bitiş noktasını döner. |
+| `runCurve(p,x,y,vRuns,hRuns,dx,dy,c)` | Adım uzunluklarıyla eğri: önce dikey koşular, sonra yatay. |
+| `curveRunIssues(vRuns,hRuns)` | Dikey koşu artıyorsa / yatay koşu azalıyorsa indeksleri döner. Boş = temiz. |
+
+### Kontur (`src/icon/selout.ts`)
+
+| Fonksiyon | Ne için |
+|---|---|
+| `selectiveOutline(p, {light=[-1,-1], lit=0.45, mid=0.72, dark=1, ink?, palette?})` | Işığa göre gölgelenmiş kontur. `light` ışığın GELDİĞİ yön. Her kontur pikseli komşu dolgu rengi ile mürekkebin karışımı. `palette` ver: yoksa renk sayısı şişer. |
+| `colouredOutline(p, {amount=0.7, ink?, palette?})` | Her parça kendi renginin koyusuyla çevrilir. |
+
+`outline` gibi: şekil bittikten sonra, tek nesnelik tuvalde çağır.
+
+### Anti-aliasing (`src/core/aa.ts`)
+
+| Fonksiyon | Ne için |
+|---|---|
+| `aaEllipse(p,cx,cy,rx,ry,c,{levels=1, samples=4, palette?, threshold?})` | Kapsama tabanlı elips. %50+ kapsanan piksel düz renk; daha azı altındaki opak renkle 1-2 ara tona karışır. Şeffafa AA yapmaz. |
+| `aaPoly(p,pts,c,opts)` | Aynısı, çokgen (çift-tek kuralı). |
+
+**Elips kuralı:** `ellipse`/`aaEllipse`'e tam sayı merkez + tam sayı yarıçap
+verilince dört uçta 1 piksellik çıkıntı (nub) oluşur. Yarıçapı .5 eksik ver.
+`Painter.ellipse` davranışı eski oyunlar için değiştirilmedi.
+
+### Dither (`src/dither/index.ts`)
+
+| Fonksiyon | Ne için |
+|---|---|
+| `ditherLevel(x,y,level,pattern='ordered')` | 4x4 sıralı desen; level 0..16, 8 = dama. Azınlık pikselleri yan yana gelmez. |
+| `ditherRect(p,x,y,w,h,a,b,level,pattern)` | Kutuyu a ile boya, level/16 oranında b. `pattern`: `ordered`, `lines-h`, `lines-v`. |
+| `ditherBands(p,x,y,w,h,colors,{axis='y', levels=3, pattern})` | Bantlı geçiş: her renk çifti arasında düz bant + ara dither bantları. |
+
+### Subpiksel ve izometrik
+
+| Fonksiyon | Ne için |
+|---|---|
+| `subpixelShift(src,dx,dy,{palette?, alphaCut=129})` | Yarım piksel kaydırılmış YENİ Painter (taslak ara kare). Sprite'ın kendi paletine iner. Elle temizle. |
+| `isoDiamond(p,cx,cy,w,c)` | 2:1 izometrik elmas (w 4'ün katı, yükseklik w/2). |
+| `isoBox(p,cx,cy,w,h,{top,left,right})` | İzometrik kutu. |
+
+### Lint (`src/lint/index.ts`)
+
+| Fonksiyon | Ne için |
+|---|---|
+| `lintSprite(p, {maxColors=16, similarDistance=20, minAlpha=128})` | Tuvali değiştirmeden rapor: `{issues, colors, counts}`. |
+| `formatLint(report)` | Okunur Türkçe satırlar. |
+| `markIssues(p, report)` | Sorunlar renkle işaretli KOPYA (nub sarı, double kırmızı, jaggy turuncu, banding mor, stray camgöbeği, similar yeşil). |
+
+Bulgu türleri: `nub` (siluet ucunda kısa çıkıntı), `double` (1px çizgide L-köşe),
+`jaggy` (merdivende iki uzun adım arasında kısa adım), `banding` (merdiven boyunca
+yapışık eşit 1px çizgiler), `stray` (düz alanda tek piksel, bilgi), `colors`
+(renk sınırı), `similar` (ayırt edilemeyen renk çifti, bilgi), `pureBlack` (bilgi).
+Sezgiseldir: yanlış pozitif olabilir, kasıtlı tek piksel (göz parıltısı) da
+işaretlenebilir. Her bulguyu görüntüde değerlendir.
