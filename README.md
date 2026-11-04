@@ -47,6 +47,21 @@ npm run examples  # önce/sonra tarif örneğini reports/ altına üretir
 Tarayıcıda `src/output/canvas.ts` ile doğrudan Canvas'a çizilir; Node'da
 `src/output/png.ts` bağımlılıksız PNG yazar.
 
+Üretilen sprite Aseprite'ta rötuşlanabilir: `src/output/aseprite.ts` kareleri,
+katmanları ve animasyon etiketlerini `.aseprite` dosyasına yazar.
+
+```ts
+import { encodeAseprite } from "./src/output/aseprite.js"; // Node-only, ayrı import
+
+writeFileSync("okcu.aseprite", encodeAseprite({
+  frames: [
+    { delayMs: 120, layers: [{ name: "govde", painter: a1 }, { name: "yay", painter: a2 }] },
+    { delayMs: 120, layers: [{ name: "govde", painter: b1 }, { name: "yay", painter: b2 }] },
+  ],
+  tags: [{ name: "atis", from: 0, to: 1 }],
+}));
+```
+
 ## Nereden okunur
 
 - [GUIDE.md](GUIDE.md) — kısa başlangıç rehberi ve iş döngüsü

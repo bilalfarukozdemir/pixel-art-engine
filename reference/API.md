@@ -144,6 +144,11 @@ kullanacaksan önce kataloğa bak, sıfırdan yeniden yazma.
 - `output/png.ts` — Node-only, bağımlılıksız PNG encoder + `upscale(painter, n)` (nearest-neighbor büyütme, inceleme/gerçek export için).
 - `output/canvas.ts` — tarayıcı-only, `ImageData` ile `<canvas>`'a blit.
 - `output/gif.ts` — `gifenc` (npm paketi) ile animasyonlu GIF. `encodeGif(frames, opts)`, her `frame: {painter, delayMs}`.
+- `output/aseprite.ts` — Node-only, bağımlılıksız `.aseprite` encoder. `encodeAseprite({frames, tags?, defaultDelayMs?})` Buffer döndürür.
+  - Her kare `{painter, delayMs?}` ya da `{layers: [{name, painter}], delayMs?}`. Dizideki ilk katman en altta kalır; her karede aynı adlar aynı sırada olmalı, boyutlar eşit olmalı.
+  - `tags`: `{name, from, to, direction?, repeat?}`. `from` ve `to` 0'dan başlar, `to` dahildir. Yön: `forward`, `reverse`, `pingpong`, `pingpong-reverse`.
+  - Boş pikseller kırpılır, tamamen boş katman karesi yazılmaz. Süre 1..65535 ms, varsayılan 100.
+  - Dosya RGBA'dır. Palete kullanılan renkler ilk görülme sırasıyla, en çok 256 tane yazılır; alfa palete taşınmaz.
 
 ## Bir sahne nasıl kurulur — katman sırası
 
