@@ -26,5 +26,10 @@ Bayrak: direk sabit, kumaşın uç kısmı sinüsle daha fazla oynar.
 Döngü zamanı normalize ise sin(2πt*n), n tam sayı seç.
 RNG: sabit zemin ve hareketli parçalar ayrı kaynak. Math.random yok.
 
+Editörde rötuş: kod iskeleti ve varyantları üretir, son dokunuş Aseprite'ta yapılır.
+Parçaları (gövde, silah, efekt) ayrı Painter'a çizip `encodeAseprite` ile katman
+olarak yaz, her hareketi etiketle. Editördeki değişiklik kaynak koda geri dönmez;
+kodu yeniden çalıştırmak dosyanın üstüne yazar, rötuşlu dosyayı ayrı adla sakla.
+
 Oyun bitişinde animasyonları/efektleri temizle; simülasyon durduğunda render
 canlı düşmanları yeniden oluşturmamalı. Bu kontrol tüketici oyunda yapılır.
