@@ -150,6 +150,18 @@ kullanacaksan önce kataloğa bak, sıfırdan yeniden yazma.
   - Boş pikseller kırpılır, tamamen boş katman karesi yazılmaz. Süre 1..65535 ms, varsayılan 100.
   - Dosya RGBA'dır. Palete kullanılan renkler ilk görülme sırasıyla, en çok 256 tane yazılır; alfa palete taşınmaz.
 
+## Zamanlı efektler (`src/fx/`) ve kontak föyü
+
+Tarif: [../recipes/effects.md](../recipes/effects.md).
+
+- `renderEffect(effect, {seed?, fps?, step?, levels?, opts?})` → `Painter[]`. Kare sayısı `round(duration*fps)+1`, son kare `t = duration`. Simülasyon 1/120 s adımla ilerler; kare hızı fiziği değiştirmez.
+- `Effect<O>`: `{meta: {name, w, h, origin, duration, fps}, defaults, create(rng, opts) → {update(dt), draw(frame)}}`.
+- `FxFrame(w, h, origin)`: yerel koordinatlı `dot`, `ditherDot`, `line`, `rect`, `disc(x,y,r,c,a?,dither?)`; ışık için `glow(x,y,r,c,güç)`. `color` bir Painter, `light` w*h*3 Float32Array.
+- `composite(frame, {levels?})`: ışığı Bayer titreşimiyle `levels` kademeye yuvarlayıp renge ekler; boş pikselde ışık en parlak kanalı opaklık olan renk olur.
+- `Particles({ground?})`: `spawn({kind, x, y, vx, vy, life, gravity?, drag?, bounce?, size?, colors, light?})`, `update(dt)`, `draw(frame)`, `count`. `ground(x)` yerel y; toz zemine çarpmaz.
+- `sparkBurst`: hazır örnek efekt; `depth` > 0 derinlikli zemin.
+- `contactSheet(frames, {cols?, scale?, every?, gap?, checker?, numbers?})` → Painter. Saf çekirdek; PNG için `encodePng`.
+
 ## Bir sahne nasıl kurulur — katman sırası
 
 Yukarıdan aşağıya, arkadan öne:
