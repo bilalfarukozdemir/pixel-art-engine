@@ -39,7 +39,7 @@ export class Painter {
     this.data = new Uint8Array(w * h * 4);
   }
 
-  /** Tek piksel; alfa < 255 ise mevcut pikselle harmanlar. */
+  /** Tek piksel; düz RGBA üzerinde Porter-Duff source-over alfa birleşimi. */
   px(x: number, y: number, c: ColorInput): void {
     const xi = x | 0, yi = y | 0;
     if (xi < 0 || yi < 0 || xi >= this.w || yi >= this.h) return;
@@ -54,10 +54,20 @@ export class Painter {
       this.data[i + 3] = 255;
     } else {
       const t = a / 255;
-      this.data[i] = Math.round(C[0] * t + this.data[i] * (1 - t));
-      this.data[i + 1] = Math.round(C[1] * t + this.data[i + 1] * (1 - t));
-      this.data[i + 2] = Math.round(C[2] * t + this.data[i + 2] * (1 - t));
-      this.data[i + 3] = Math.max(this.data[i + 3], a);
+      const destAlpha = this.data[i + 3];
+      if (destAlpha === 0) {
+        this.data[i] = C[0]; this.data[i + 1] = C[1]; this.data[i + 2] = C[2];
+        this.data[i + 3] = a;
+        return;
+      }
+      // Opak hedefte eski aritmetik ve yuvarlama sırasını aynen koru.
+      const destWeight = destAlpha === 255 ? 1 - t : destAlpha / 255 * (1 - t);
+      const outAlpha = t + destWeight;
+      for (let channel = 0; channel < 3; channel++) {
+        const value = C[channel] * t + this.data[i + channel] * destWeight;
+        this.data[i + channel] = Math.round(destAlpha === 255 ? value : value / outAlpha);
+      }
+      this.data[i + 3] = Math.round(outAlpha * 255);
     }
   }
 

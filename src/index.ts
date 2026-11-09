@@ -30,3 +30,7 @@ export { sparkBurst } from './fx/presets.js';
 export type { SparkBurstOptions } from './fx/presets.js';
 export { contactSheet } from './output/contact.js';
 export type { ContactSheetOptions } from './output/contact.js';
+export { H32, vnoise, fbm } from './core/noise.js';
+export { stroke, wobblePoly, erode, roughTower } from './core/organic.js';
+export { resizeArea, chromaKey, quantizeKMeans, despeckle } from './core/image.js';
+export type { ChromaKeyOptions, QuantizeOptions } from './core/image.js';
