@@ -3,8 +3,8 @@
 // Sadece Node'da import edilir (tarayıcı bundle'ına girmemeli).
 // Painter.data (RGBA Uint8Array) → PNG Buffer.
 // ============================================================
-import { deflateSync } from "node:zlib";
-import type { Painter } from "../core/painter.js";
+import { deflateSync, inflateSync } from "node:zlib";
+import { Painter } from "../core/painter.js";
 
 const CRC_TABLE = new Uint32Array(256);
 for (let n = 0; n < 256; n++) {
@@ -67,6 +67,66 @@ export function upscale(painter: Painter, n: number): Uint8Array {
       out[di + 1] = data[si + 1];
       out[di + 2] = data[si + 2];
       out[di + 3] = data[si + 3];
+    }
+  }
+  return out;
+}
+
+/** 8-bit, interlace olmayan RGB/RGBA PNG'yi düz RGBA Painter'a çözer. */
+export function decodePng(input: Uint8Array): Painter {
+  const buf = Buffer.from(input.buffer, input.byteOffset, input.byteLength);
+  const fail = (message: string): never => { throw new Error(`decodePng: ${message}`); };
+  if (!buf.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) fail('geçersiz PNG imzası');
+  let w = 0, h = 0, channels = 0, ended = false, sawIdat = false, transparency: Buffer | undefined;
+  const parts: Buffer[] = [];
+  for (let at = 8; at < buf.length;) {
+    if (at + 12 > buf.length) fail('eksik chunk');
+    const length = buf.readUInt32BE(at), end = at + 12 + length;
+    if (end > buf.length) fail('eksik chunk verisi');
+    const type = buf.toString('ascii', at + 4, at + 8), data = buf.subarray(at + 8, end - 4);
+    if (crc32(buf.subarray(at + 4, end - 4)) !== buf.readUInt32BE(end - 4)) fail(`${type} CRC uyuşmuyor`);
+    if (at === 8 && type !== 'IHDR') fail('ilk chunk IHDR olmalı');
+    if (type === 'IHDR') {
+      if (w || length !== 13) fail('geçersiz IHDR');
+      w = data.readUInt32BE(0); h = data.readUInt32BE(4);
+      if (!w || !h || w > 0x7fffffff || h > 0x7fffffff) fail('geçersiz boyut');
+      if (data[8] !== 8 || ![2, 6].includes(data[9])) fail('yalnız 8-bit RGB (2) / RGBA (6) desteklenir');
+      if (data[10] || data[11] || data[12]) fail('desteklenmeyen sıkıştırma, filtre yöntemi veya interlace');
+      channels = data[9] === 2 ? 3 : 4;
+    } else if (type === 'IDAT') { parts.push(data); sawIdat = true; }
+    else if (type === 'tRNS') {
+      if (channels !== 3 || length !== 6 || sawIdat || transparency) fail('geçersiz tRNS');
+      transparency = data;
+    } else if (type === 'IEND') { if (length) fail('geçersiz IEND'); ended = true; break; }
+    else if (type !== 'PLTE' && (buf[at + 4] & 32) === 0) fail(`desteklenmeyen kritik chunk: ${type}`);
+    at = end;
+  }
+  if (!ended || !parts.length || !w) fail('IHDR, IDAT veya IEND eksik');
+  const stride = w * channels, expected = (stride + 1) * h;
+  if (!Number.isSafeInteger(expected) || expected > 0x7fffffff || w * h * 4 > 0x7fffffff) fail('görüntü çok büyük');
+  let raw: Buffer;
+  try { raw = inflateSync(Buffer.concat(parts), { maxOutputLength: expected }); }
+  catch { return fail('geçersiz veya fazla büyük zlib verisi'); }
+  if (raw.length !== expected) fail('piksel verisi boyutu uyuşmuyor');
+  const out = new Painter(w, h), decoded = new Uint8Array(stride * h);
+  const paeth = (a: number, b: number, c: number): number => {
+    const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+    return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+  };
+  for (let y = 0; y < h; y++) {
+    const filter = raw[y * (stride + 1)];
+    if (filter > 4) fail(`desteklenmeyen satır filtresi: ${filter}`);
+    for (let x = 0; x < stride; x++) {
+      const i = y * stride + x, a = x >= channels ? decoded[i - channels] : 0;
+      const b = y ? decoded[i - stride] : 0, c = y && x >= channels ? decoded[i - stride - channels] : 0;
+      const predictor = filter === 0 ? 0 : filter === 1 ? a : filter === 2 ? b : filter === 3 ? Math.floor((a + b) / 2) : paeth(a, b, c);
+      decoded[i] = (raw[y * (stride + 1) + 1 + x] + predictor) & 255;
+    }
+    for (let x = 0; x < w; x++) {
+      const i = y * stride + x * channels, o = (y * w + x) * 4;
+      out.data.set(decoded.subarray(i, i + 3), o);
+      const transparent = transparency && [0, 1, 2].every(c => decoded[i + c] === transparency!.readUInt16BE(c * 2));
+      out.data[o + 3] = channels === 4 ? decoded[i + 3] : transparent ? 0 : 255;
     }
   }
   return out;

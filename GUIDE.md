@@ -19,6 +19,7 @@ Amaç daha çok ayrıntı değil, gerçek kullanım boyutunda okunur ve tutarlı
 - Doğal zemin / atmosfer: [recipes/landscape.md](recipes/landscape.md)
 - Ev içi kesit oda / yumuşak stil: [recipes/interior.md](recipes/interior.md)
 - Karakter / animasyon: [recipes/animation.md](recipes/animation.md)
+- Kıvılcım / toz / parıltı / zamanlı efekt: [recipes/effects.md](recipes/effects.md)
 - Net metin / fantastik HUD: [recipes/ui.md](recipes/ui.md)
 - İmzalar, renk, RNG, katalog, çıktı: [reference/API.md](reference/API.md)
 - Çalışan önce/sonra: [demo/recipes.ts](demo/recipes.ts)

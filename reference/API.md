@@ -58,7 +58,7 @@ değil. Çıktı katmanı bu buffer'ı PNG'ye ya da canvas'a çevirir.
 
 | Metod | Ne zaman kullanılır |
 |---|---|
-| `px(x,y,c)` | Tek piksel. `c`'nin alfası <255 ise **mevcut pikselle gerçekten harmanlanır** — ince highlight/rim-ışığı/sis için temel taş. |
+| `px(x,y,c)` | Tek piksel. `c`'nin alfası <255 ise **Porter-Duff source-over ile birleşir**: boş hedefte kaynak RGB ve alfa korunur; yarı saydam hedefte RGB alfa ağırlıklıdır, alfa `As + Ad*(1-As)` olur; opak hedefte eski yuvarlama korunur — ince highlight/rim-ışığı/sis için temel taş. |
 | `get(x,y)` | Bir pikseli geri oku (nadiren gerekir, debug/kompozisyon kontrolü için). |
 | `fill(c)` / `rect` / `hline` / `vline` | Düz alan/zemin/kutu. |
 | `line(x0,y0,x1,y1,c)` | Bresenham. İnce uzun şeyler: sap, ip, çizgi, asa. |
@@ -74,7 +74,7 @@ değil. Çıktı katmanı bu buffer'ı PNG'ye ya da canvas'a çevirir.
 - `hex(c)` — `"#rrggbb(aa)"` ↔ `[r,g,b,a]` dönüşümü, genelde elle çağırman gerekmez.
 - `shade(c, f)` — basit koyulaştır/aydınlat (`f<1` koyu, `f>1` açık). Hızlı ton varyasyonu.
 - `mix(a, b, t)` — iki rengin `t` (0..1) oranında karışımı. **Her zaman opak (`alpha=255`) döner.** Bir YÜZEYİN (poly/ellipse dolgusunun) kendi rengini "bu ışığa mı bakıyor" mantığıyla hesaplamak için doğru araç.
-- `alpha(c, a)` — renge alfa (0..255) ekler. İNCE bir çizgi/nokta/highlight/rim-ışığı eklemek için doğru araç, çünkü `px()`'in blend mekanizmasından geçer ve altındaki renkle **gerçekten karışır**.
+- `alpha(c, a)` — renge alfa (0..255) ekler. İNCE bir çizgi/nokta/highlight/rim-ışığı eklemek için doğru araç, çünkü `px()`'in blend mekanizmasından geçer ve hedef alfasını da hesaba katar; boş hedefte kaynak rengi koyulaşmadan kalır.
 
 **Sık yapılan hata:** `mix()`'i ince bir rim-ışığı çizgisinde kullanmak —
 sonuç "yama" gibi sert bir çizgi olur çünkü opak boyanır, altındaki dokuyla
@@ -141,7 +141,7 @@ kullanacaksan önce kataloğa bak, sıfırdan yeniden yazma.
 
 ## Çıktı katmanları
 
-- `output/png.ts` — Node-only, bağımlılıksız PNG encoder + `upscale(painter, n)` (nearest-neighbor büyütme, inceleme/gerçek export için).
+- `output/png.ts` — Node-only, bağımlılıksız PNG encoder/decoder + `upscale(painter, n)` (nearest-neighbor büyütme, inceleme/gerçek export için).
 - `output/canvas.ts` — tarayıcı-only, `ImageData` ile `<canvas>`'a blit.
 - `output/gif.ts` — `gifenc` (npm paketi) ile animasyonlu GIF. `encodeGif(frames, opts)`, her `frame: {painter, delayMs}`.
 - `output/aseprite.ts` — Node-only, bağımlılıksız `.aseprite` encoder. `encodeAseprite({frames, tags?, defaultDelayMs?})` Buffer döndürür.
@@ -149,6 +149,18 @@ kullanacaksan önce kataloğa bak, sıfırdan yeniden yazma.
   - `tags`: `{name, from, to, direction?, repeat?}`. `from` ve `to` 0'dan başlar, `to` dahildir. Yön: `forward`, `reverse`, `pingpong`, `pingpong-reverse`.
   - Boş pikseller kırpılır, tamamen boş katman karesi yazılmaz. Süre 1..65535 ms, varsayılan 100.
   - Dosya RGBA'dır. Palete kullanılan renkler ilk görülme sırasıyla, en çok 256 tane yazılır; alfa palete taşınmaz.
+
+## Zamanlı efektler (`src/fx/`) ve kontak föyü
+
+Tarif: [../recipes/effects.md](../recipes/effects.md).
+
+- `renderEffect(effect, {seed?, fps?, step?, levels?, opts?})` → `Painter[]`. Kare sayısı `round(duration*fps)+1`, son kare `t = duration`. Simülasyon 1/120 s adımla ilerler; kare hızı fiziği değiştirmez.
+- `Effect<O>`: `{meta: {name, w, h, origin, duration, fps}, defaults, create(rng, opts) → {update(dt), draw(frame)}}`.
+- `FxFrame(w, h, origin)`: yerel koordinatlı `dot`, `ditherDot`, `line`, `rect`, `disc(x,y,r,c,a?,dither?)`; ışık için `glow(x,y,r,c,güç)`. `color` bir Painter, `light` w*h*3 Float32Array.
+- `composite(frame, {levels?})`: ışığı Bayer titreşimiyle `levels` kademeye yuvarlayıp renge ekler; boş pikselde ışık en parlak kanalı opaklık olan renk olur.
+- `Particles({ground?})`: `spawn({kind, x, y, vx, vy, life, gravity?, drag?, bounce?, size?, colors, light?})`, `update(dt)`, `draw(frame)`, `count`. `ground(x)` yerel y; toz zemine çarpmaz.
+- `sparkBurst`: hazır örnek efekt; `depth` > 0 derinlikli zemin.
+- `contactSheet(frames, {cols?, scale?, every?, gap?, checker?, numbers?})` → Painter. Saf çekirdek; PNG için `encodePng`.
 
 ## Bir sahne nasıl kurulur — katman sırası
 
@@ -223,3 +235,99 @@ Somut referans noktaları (tümü bu projede gerçekten denendi):
   üretilmiş çok-karakterli bir sahne örneği.
 - `../demo/build.ts` — birden fazla sahneyi `Catalog`'a ekleyip atlas + PNG
   olarak kaydetme.
+
+
+## Gürültü ve organik çizim (saf çekirdek)
+
+Hepsi `src/index.js` üzerinden alınır. Renk parametreleri `ColorInput`
+(`#rrggbb`, `#rrggbbaa` veya `[r,g,b,a]`). Veyra paleti/sabitleri taşınmaz.
+
+- `H32(a,b): number`: 0..1 deterministik hash. Normal JS çarpması kullanır,
+  **Math.imul değildir**; Veyra ile sayısal uyum için değiştirilmemelidir.
+- `vnoise(x,y): number`: yumuşatılmış iki boyutlu değer gürültüsü.
+- `fbm(x,y,oct=4): number`: 2.03 frekans, 0.5 genlik çarpanlı oktav toplamı;
+  `oct` pozitif tam sayı olmalı. Bu üç işlevin ayrı RNG/seed parametresi yok;
+  seed koordinata ofset olarak katılır.
+- `stroke(p,x0,y0,x1,y1,c,amp,seed): void`: dik yönde gürültüyle salınan çizgi.
+- `wobblePoly(pts,amp,seed,step=3): [number,number][]`: kenarları böler ve
+  noktaları oynatır; girdi değişmez, `step > 0` kullan.
+- `erode(layer,amount,seed,passes=2): void`: silüeti yerinde aşındırır/büyütür.
+  `amount` genelde 0..1, `passes` negatif olmayan tam sayı.
+- `roughTower(p,x,base,w,h,lean,c,seed): void`: eğik, düzensiz kule gövdesi.
+
+Algoritmalar, döngü ve işlem sırası Veyra `organik.ts` ile aynıdır.
+`px` düzeltmesi saydam hedefe yarı saydam renk çiziminde bilinçli fark yaratır.
+
+## Görüntü işleme (saf çekirdek, `src/core/image.ts`)
+
+`src/index.js` üzerinden import edilir; Node/DOM bağımlılığı yoktur.
+`resizeArea` yeni Painter döndürür; diğer üç işlev Painter'ı yerinde değiştirir.
+
+- `resizeArea(src,width,height=round(src.h*width/src.w)): Painter`: tam sayı
+  olmayan ölçek oranlarında gerçek alan örtüşmesiyle, alfa ağırlıklı küçültme.
+  Varsayılan yükseklik en az 1; hedef boyutlar pozitif tam sayı ve kaynaktan
+  büyük olamaz. Tam saydam RGB ortalamaya katılmaz. Mevcut `downsample` değişmedi.
+- `chromaKey(p,opts={}): void`: anahtar ve kenar sızıntısı temizliği.
+  `ChromaKeyOptions`: `key: ColorInput = '#ff00ff'`, `dominance=60`,
+  `high=140`, `low=120`, `edgeDominance=25`, `spillPrimary=40`,
+  `spillSecondary=60`, `passes=2`.
+  Anahtarın >=128 olan güçlü kanalları ve <128 olan zayıf kanalları ayrılır
+  (RGB/CMY tonları, ör. yeşil veya macenta; siyah/beyaz anahtar desteklenmez).
+  En düşük güçlü kanal eksi en yüksek zayıf kanal > dominance **veya**
+  güçlü kanallar > high, zayıf kanallar < low ise alfa sıfırlanır.
+  Dört yönde saydam/tuval dışı komşu kenar sayılır. Kenarda fark > edgeDominance
+  ise piksel geçiş sonunda silinir; kalan güçlü kanallar zayıf kanal + spill
+  sınırına kırpılır (RGB kanal sırasındaki ilk güçlüye primary, diğerine secondary).
+  Varsayılan macenta davranışı karma.ts ile aynıdır; kalan alfa korunur.
+- `quantizeKMeans(p,colors,opts={}): void`: en çok `colors` RGB rengine indirger.
+  `QuantizeOptions`: `seed=7`, `iterations=14`, `maxSamples=60000`.
+  RNG `mulberry32` olduğundan Veyra karma.ts içindeki eski LCG ile aynı
+  palet beklenmez. Tam saydam pikseller atlanır; diğer alfalar korunur.
+  Renk/iterasyon/örnek sayısı pozitif tam sayı; boş görüntü değişmez.
+- `despeckle(p,threshold=6): void`: sekiz komşudan en az threshold tanesi aynı
+  farklı RGB'deyse ve mevcut RGB'den komşu yoksa merkez RGB değiştirilir.
+  Girdi anlık kopyayla değerlendirilir; alfa, saydam pikseller ve sınırlar
+  korunur. threshold 1..8 tam sayı.
+
+## PNG çözme ve animasyon sheet (Node-only)
+
+Doğrudan `src/output/png.js`, `src/output/sheet.js` veya ortak Node girişi
+`src/output/index.js` üzerinden alınır; tarayıcı girişine eklenmez.
+
+- `decodePng(bytes: Uint8Array): Painter`: 8-bit RGB (tip 2) ve RGBA (tip 6),
+  filtre 0..4, birden fazla IDAT ve RGB tRNS destekler. Interlace, diğer renk
+  tipleri/bit derinlikleri ve bilinmeyen kritik chunk'lar açık hatayla reddedilir.
+  İmza, CRC, veri uzunluğu ve zlib doğrulanır. `encodePng(decodePng(bytes))`
+  RGBA piksellerini korur; kaynak sıkıştırması/metadata korunmaz.
+- `encodeSheet({frames,pivot,animations}): EncodedSheet`: eş boyutlu, boş olmayan
+  `Painter[]` karelerden tek satır PNG üretir; dosya yazmaz.
+  Dönüş `{png: Buffer, json: string, aseprite: Buffer}`. `pivot: [x,y]`,
+  tuval koordinatlarıdır. PNG kare sırası girdi sırasıdır; ham RGBA korunur.
+  JSON tipi `SheetMetadata`, animasyon tipi `SheetAnimation`, seçenek tipi
+  `EncodeSheetOptions`:
+
+```json
+{
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "pivot": [32, 60],
+  "animations": {
+    "attack": {
+      "frames": [0, 1, 2],
+      "delays": [90, 90, 110],
+      "events": {"2": "hit"},
+      "hitStopMs": {"2": 45}
+    }
+  }
+}
+```
+
+`frames` sheet'teki sıfır tabanlı indeksler; `delays` aynı uzunlukta ms
+süreleri (1..65535). Tekrar/sıra serbesttir. Opsiyonel `events` string,
+`hitStopMs` negatif olmayan sonlu ms değerleri taşır; anahtarlar **animasyon
+listesindeki** sıfır tabanlı kare sırasıdır. Alanlar verilmezse JSON'a eklenmez.
+Motor bu metadata'yı çalıştırmaz; dövüş sistemi tüketir.
+Aseprite zaman çizelgesi animasyonları nesnenin giriş sırasıyla birleştirir,
+her animasyon için etiket ekler; tekrar edilen kareler/süre farkları korunur.
+Hiçbir animasyonda kullanılmayan kareler sona 100 ms süreyle etiketsiz eklenir.
+JSON ve PNG indeksleri bu Aseprite zaman çizelgesinden bağımsızdır.
