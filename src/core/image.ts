@@ -2,6 +2,43 @@ import { Painter } from './painter.js';
 import { hex, type ColorInput } from './color.js';
 import { mulberry32 } from './rng.js';
 
+export interface RotateImageOptions {
+  /** Varsayılan true; false ise kaynak boyutlarında merkezden kırpar. */
+  expand?: boolean;
+}
+
+/** Merkezden saat yönünde, ters eşlemeli en yakın komşu; kaynak değişmez. */
+export function rotateImage(src: Painter, degrees: number, opts: RotateImageOptions = {}): Painter {
+  if (!Number.isFinite(degrees)) throw new RangeError('rotateImage: açı sonlu olmalı');
+  const angle = ((degrees % 360) + 360) % 360;
+  const expand = opts.expand !== false;
+  if (angle === 0) { const out = new Painter(src.w, src.h); out.data.set(src.data); return out; }
+  const quarter = angle / 90;
+  if (Number.isInteger(quarter)) {
+    const turn = quarter;
+    const w = expand && turn % 2 ? src.h : src.w, h = expand && turn % 2 ? src.w : src.h;
+    const out = new Painter(w, h);
+    for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) {
+      let dx: number, dy: number;
+      if (turn === 1) { dx = src.h - 1 - y; dy = x; }
+      else if (turn === 2) { dx = src.w - 1 - x; dy = src.h - 1 - y; }
+      else { dx = y; dy = src.w - 1 - x; }
+      if (!expand) { dx = Math.floor((dx + (w - (turn % 2 ? src.h : src.w)) / 2)); dy = Math.floor((dy + (h - (turn % 2 ? src.w : src.h)) / 2)); }
+      if (dx >= 0 && dy >= 0 && dx < w && dy < h) out.data.set(src.data.subarray((y * src.w + x) * 4, (y * src.w + x) * 4 + 4), (dy * w + dx) * 4);
+    }
+    return out;
+  }
+  const rad = angle * Math.PI / 180, c = Math.cos(rad), s = Math.sin(rad);
+  const w = expand ? Math.ceil(Math.abs(src.w * c) + Math.abs(src.h * s)) : src.w;
+  const h = expand ? Math.ceil(Math.abs(src.w * s) + Math.abs(src.h * c)) : src.h;
+  const out = new Painter(w, h), scx = (src.w - 1) / 2, scy = (src.h - 1) / 2, ocx = (w - 1) / 2, ocy = (h - 1) / 2;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const dx = x - ocx, dy = y - ocy, sx = Math.round(c * dx + s * dy + scx), sy = Math.round(-s * dx + c * dy + scy);
+    if (sx >= 0 && sy >= 0 && sx < src.w && sy < src.h) out.data.set(src.data.subarray((sy * src.w + sx) * 4, (sy * src.w + sx) * 4 + 4), (y * w + x) * 4);
+  }
+  return out;
+}
+
 /** Alan örtüşmeleriyle alfa ağırlıklı küçültme; kaynak değişmez. */
 export function resizeArea(src: Painter, width: number, height = Math.max(1, Math.round(src.h * width / src.w))): Painter {
   if (![width, height].every(n => Number.isInteger(n) && n > 0) || width > src.w || height > src.h)
