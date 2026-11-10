@@ -58,3 +58,24 @@ export const sparkBurst: Effect<SparkBurstOptions> = {
     };
   },
 };
+
+export interface DustPuffOptions {
+  /** Toz renkleri, açıktan koyuya. */
+  dust: ColorInput[];
+  /** Toz parçacığı sayısı. */
+  count: number;
+}
+
+/** Zeminden yavaşça yükselip açılan, sonda sönen kısa toz bulutu. */
+export const dustPuff: Effect<DustPuffOptions> = {
+  meta: { name: "dust-puff", w: 64, h: 48, origin: [32, 34], duration: 0.7, fps: 20 },
+  defaults: { dust: ["#d8c8a8", "#a8957a", "#7a6a58"], count: 7 },
+  create(rng, o) {
+    const ps = new Particles();
+    for (let i = 0; i < o.count; i++) {
+      const side = rng() < 0.5 ? -1 : 1;
+      ps.spawn({ kind: "dust", x: (rng() - 0.5) * 4, y: 0, vx: side * (5 + rng() * 13), vy: -(10 + rng() * 15), gravity: 5, drag: 0.15, life: 0.42 + rng() * 0.2, size: 2 + rng() * 1.5, colors: o.dust });
+    }
+    return { update(dt) { ps.update(dt); }, draw(f) { ps.draw(f); } };
+  },
+};

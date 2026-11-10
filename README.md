@@ -101,6 +101,25 @@ const frames = renderEffect(sparkBurst, { seed: 7, opts: { depth: 8 } });
 const preview = contactSheet(frames, { cols: 6, scale: 2 });
 ```
 
+### Sahne dekoru yardımcıları: döndürme, saçma, toz
+
+`npm run build` sonrasında depo kökünde çalıştırılabilir:
+
+`rotateImage` resmi en yakın komşuyla döndürüp yeni `Painter` üretir; `scatterPoints` tohumlanmış rastgelelikle sınırlar içine noktalar yerleştirir. `dustPuff` kısa, yukarı açılan bir toz bulutu üretir ve `renderEffect` ile karelere çevrilir.
+
+```js
+import { Painter, rotateImage, scatterPoints, mulberry32, dustPuff, renderEffect } from "./dist/index.js";
+
+const source = new Painter(12, 10);
+source.fill("#927a58");
+source.rect(2, 2, 8, 6, "#c9b28a");
+const crate = rotateImage(source, 14);
+const places = scatterPoints({ x: 8, y: 12, w: 72, h: 44 }, 3, mulberry32(7), { minDist: 16 });
+const scene = new Painter(96, 72);
+for (const p of places) scene.blit(crate, p.x, p.y);
+const dustFrames = renderEffect(dustPuff, { seed: 7 });
+```
+
 `encodeSheet` tek satırlık PNG, animasyon/süre/pivot JSON'u ve etiketli Aseprite
 verisini birlikte döndürür; dosyaları çağıran yazar. `events` ve `hitStopMs`
 anahtarları animasyon listesindeki sıfır tabanlı kare sıralarıdır; motor bu
