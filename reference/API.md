@@ -331,3 +331,25 @@ Aseprite zaman çizelgesi animasyonları nesnenin giriş sırasıyla birleştiri
 her animasyon için etiket ekler; tekrar edilen kareler/süre farkları korunur.
 Hiçbir animasyonda kullanılmayan kareler sona 100 ms süreyle etiketsiz eklenir.
 JSON ve PNG indeksleri bu Aseprite zaman çizelgesinden bağımsızdır.
+
+## Pixel Logic araçları
+
+Pixel Logic kitabından öğrenilen tekniklerin motor karşılıkları. Hepsi
+`src/index.ts`'ten export edilir, runtime-agnostiktir ve RNG kullanmaz.
+Tarifler `recipes/` altında, kaynakça `recipes/SOURCES.md`.
+
+### Renk ve palet (`src/core/color.ts`, `src/palette/index.ts`)
+
+Tarif: `recipes/color.md`. Testler: `tests/palette.test.mjs`.
+
+| Fonksiyon | Ne için |
+|---|---|
+| `toHsv(c)` / `fromHsv(h,s,v,a=255)` | HSV dönüşümü (h 0..360 sarılır, s/v 0..1 kırpılır). |
+| `luma(c)` | Algısal parlaklık 0..1 (Rec. 601). Rampa sırası, kontrast. |
+| `colorDistance(a,b)` | "Redmean" ağırlıklı RGB uzaklığı; ~20 altı küçük sprite'ta ayırt edilmez. |
+| `hueRamp(base, {steps=5, hueShift=36, darkest=0.2, lightest=0.97, saturation='arc'})` | Koyudan açığa rampa. Koyu taraf `SHADOW_HUE` (255°), açık taraf `HIGHLIGHT_HUE` (60°) yönüne en kısa yoldan kayar. `base` ortada (index `floor(steps/2)`) aynen durur; luma soldan sağa artar. Geçersiz seçenek `RangeError`. |
+| `hueToward(h, target, deg)` | Tonu hedefe en kısa yoldan en fazla `deg` derece yaklaştırır; hedefi geçmez. |
+| `inkOf(c, value=0.16)` | Saf siyah yerine koyu, renkli kontur/göz tonu. Gri girdide koyu mor. |
+| `paletteOf(p, minAlpha=128)` | Benzersiz opak renkler, koyudan açığa sıralı. |
+| `nearestColor(c, palette)` | Paletteki en yakın renk (`colorDistance`). Boş palet `RangeError`. |
+| `quantize(p, palette, alphaCut=128)` | Tuvali yerinde palete indirir; `alphaCut` altı şeffaf olur. `quantizeKMeans`'ten farkı: paleti sen verirsin. |

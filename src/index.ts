@@ -4,7 +4,7 @@
 // ayrı yollardan import edilir: "./output/png.js", "./output/canvas.js".
 export { Painter } from "./core/painter.js";
 export type { GradientStop, VGradOptions } from "./core/painter.js";
-export { hex, mix, shade, alpha, toCssHex } from "./core/color.js";
+export { hex, mix, shade, alpha, toCssHex, toHsv, fromHsv, luma, colorDistance } from "./core/color.js";
 export type { RGBA, ColorInput } from "./core/color.js";
 export { mulberry32 } from "./core/rng.js";
 export type { Rng } from "./core/rng.js";
@@ -36,3 +36,5 @@ export { resizeArea, rotateImage, chromaKey, quantizeKMeans, despeckle } from '.
 export type { RotateImageOptions, ChromaKeyOptions, QuantizeOptions } from './core/image.js';
 export { scatterPoints } from './core/scatter.js';
 export type { ScatterBounds, ScatterOptions } from './core/scatter.js';
+export { hueRamp, hueToward, inkOf, paletteOf, nearestColor, quantize, HIGHLIGHT_HUE, SHADOW_HUE } from './palette/index.js';
+export type { RampOptions, SaturationCurve } from './palette/index.js';
