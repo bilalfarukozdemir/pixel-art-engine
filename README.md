@@ -42,6 +42,7 @@ writeFileSync("out.png", encodePng(p));
 npm install
 npm test          # derler ve testleri çalıştırır
 npm run examples  # önce/sonra tarif örneğini reports/ altına üretir
+npm run examples:pixel-logic  # renk rampası, AA, sel-out, lint, dither tablosu
 ```
 
 Tarayıcıda `src/output/canvas.ts` ile doğrudan Canvas'a çizilir; Node'da
@@ -147,6 +148,9 @@ Saydam sprite, ışık ve sis çıktılarınızı bu değişiklikle yeniden göz
 
 - [GUIDE.md](GUIDE.md) — kısa başlangıç rehberi ve iş döngüsü
 - [recipes/](recipes/) — bina, manzara, iç mekân, animasyon, UI tarifleri
+- Teknik temelleri (renk, çizgi, okunurluk, temizlik, AA, dither, perspektif,
+  subpiksel): Pixel Logic kitabından
+  kendi cümlelerimizle özet; bkz. [GUIDE.md](GUIDE.md) ve [recipes/SOURCES.md](recipes/SOURCES.md)
 - [reference/API.md](reference/API.md) — fonksiyon başvurusu
 - [demo/](demo/) — motorun sınırlarını deneyen sahne kodları
 
