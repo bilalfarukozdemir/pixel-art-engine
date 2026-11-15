@@ -5,7 +5,11 @@
 // Bulduğu sorunlar:
 //   nub      siluetin ucunda kısa çıkıntı ("meme ucu"): uçtaki sıra, yanındaki
 //            adımlardan kısa. Tam sayı merkez+yarıçaplı elipslerde sık görülür.
-//   double   1px çizgide L-köşe ("çift piksel"); merdiveni kalınlaştırır.
+//   double   1px çizgide tek tek L-köşe ("çift piksel"); çizgiyi o noktada
+//            kalınlaştırır. Yalnız ince çizgilere bakılır: köşe, kolları ve
+//            devamı en fazla 3 aynı renkli komşuya sahip olmalı. Dolgu
+//            alanları ve baştan sona 2px kalın (4-bağlantılı) çizgiler
+//            işaretlenmez; ikincisi bir kalınlık/stil tercihidir.
 //   jaggy    merdivende iki uzun adım arasında kalan tek kısa adım
 //            ("bir sırayı kendinden büyüklerle çevreleme" kuralı).
 //   banding  iki 1px çizginin aynı boyda, merdiven boyunca yapışık gitmesi.
@@ -170,7 +174,14 @@ export function lintSprite(p: Painter, opts: LintOptions = {}): LintReport {
     }
   }
 
-  // --- double: L-köşe ---
+  const same8 = (x: number, y: number, c: number): number => {
+    let n = 0;
+    for (let yy = -1; yy <= 1; yy++)
+      for (let xx = -1; xx <= 1; xx++) if ((xx || yy) && at(x + xx, y + yy) === c) n++;
+    return n;
+  };
+
+  // --- double: L-köşe (yalnız 1px çizgilerde) ---
   for (let y = 0; y < h; y++)
     for (let x = 0; x < w; x++) {
       const c = at(x, y);
@@ -179,8 +190,29 @@ export function lintSprite(p: Painter, opts: LintOptions = {}): LintReport {
       if (+L + +R + +U + +D !== 2 || (L && R) || (U && D)) continue;
       const dx = L ? -1 : 1, dy = U ? -1 : 1;
       if (at(x + dx, y + dy) === c) continue; // 2x2 blok köşesi, çizgi değil
+      // Yalnız 1px çizgiler: köşe, iki kolu ve devam pikseli en fazla 3 aynı renkli
+      // 8-komşuya sahip olmalı. 2px kalın çapraz dolgu şeridinde (ör. kulak içi)
+      // pikseller 4+ komşuludur; o bir alan kenarıdır, çizgi değil.
+      const thin = (px: number, py: number): boolean => same8(px, py, c) <= 3;
+      if (!thin(x, y) || !thin(x + dx, y) || !thin(x, y + dy)) continue;
       // Merdiven devam ediyorsa (dik kol yatayda, yatay kol dikeyde sürüyorsa) çift piksel.
-      if (at(x - dx, y + dy) === c || at(x + dx, y - dy) === c) issues.push(box("double", x, y, 1, 1));
+      // Ayrıca çizgi L'nin iki dış ucundan da en az bir piksel sürmeli: aksi hâlde
+      // bu bir çizgi değil, kalın bir dolgu şeridinden kalan kısa kırıntıdır.
+      const outward = (ex: number, ey: number, skip: number[][]): boolean => {
+        for (let yy = -1; yy <= 1; yy++)
+          for (let xx = -1; xx <= 1; xx++) {
+            const nx = ex + xx, ny = ey + yy;
+            if ((xx || yy) && at(nx, ny) === c && !skip.some(([sx, sy]) => sx === nx && sy === ny)) return true;
+          }
+        return false;
+      };
+      const isDouble = (cx: number, cy: number, outer: [number, number]): boolean => {
+        if (at(cx, cy) !== c || !thin(cx, cy)) return false;
+        const skip = [[x, y], [x + dx, y], [x, y + dy], [cx, cy]];
+        return outward(outer[0], outer[1], skip) && outward(cx, cy, skip);
+      };
+      if (isDouble(x - dx, y + dy, [x + dx, y]) || isDouble(x + dx, y - dy, [x, y + dy]))
+        issues.push(box("double", x, y, 1, 1));
     }
 
   // --- jaggy: merdivende vadi adımı ---

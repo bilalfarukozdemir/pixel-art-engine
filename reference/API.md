@@ -403,7 +403,9 @@ verilince dört uçta 1 piksellik çıkıntı (nub) oluşur. Yarıçapı .5 eksi
 | `formatLint(report)` | Okunur Türkçe satırlar. |
 | `markIssues(p, report)` | Sorunlar renkle işaretli KOPYA (nub sarı, double kırmızı, jaggy turuncu, banding mor, stray camgöbeği, similar yeşil). |
 
-Bulgu türleri: `nub` (siluet ucunda kısa çıkıntı), `double` (1px çizgide L-köşe),
+Bulgu türleri: `nub` (siluet ucunda kısa çıkıntı), `double` (ince 1px çizgide tek tek
+L-köşe; köşe, kolları ve devamı en fazla 3 aynı renkli komşuya sahip olmalı ve çizgi
+L'nin iki ucundan da sürmeli — dolgu alanları ve baştan sona 2px kalın çizgiler işaretlenmez),
 `jaggy` (merdivende iki uzun adım arasında kısa adım), `banding` (merdiven boyunca
 yapışık eşit 1px çizgiler), `stray` (düz alanda tek piksel, bilgi), `colors`
 (renk sınırı), `similar` (ayırt edilemeyen renk çifti, bilgi), `pureBlack` (bilgi).

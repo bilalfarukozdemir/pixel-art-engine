@@ -89,9 +89,8 @@ test('lint: integer-radius ellipses leave nubs, half-radius ones do not',()=>{
   assert.equal(lintSprite(flatTop).counts.nub,0);
 });
 test('lint: L-corner doubles are found, clean staircase and box corners are not',()=>{
-  const bad=new Painter(10,10);
-  for(let i=0;i<4;i++){ bad.px(2*i,i,INK); bad.px(2*i+1,i,INK); bad.px(2*i+1,i+1,INK); }
-  assert.ok(lintSprite(bad).counts.double>0);
+  const bad=new Painter(14,8); stairs(bad,0,0,2,1,6,INK); bad.px(2,0,INK);   // temiz merdivende tek L-köşe
+  assert.equal(lintSprite(bad).counts.double,1);
   const good=new Painter(10,10); stairs(good,0,0,2,1,4,INK);
   assert.equal(lintSprite(good).counts.double,0);
   const box=new Painter(10,10); for(let i=1;i<9;i++){ box.px(i,1,INK); box.px(i,8,INK); box.px(1,i,INK); box.px(8,i,INK); }
