@@ -2,6 +2,7 @@
 // Kapsama tabanlı anti-aliasing (AA) — "hayali vektör çizgisini düşün,
 // en büyük boşlukları doldur" yönteminin otomatik hâli.
 // Kaynak: recipes/anti-aliasing.md.
+// Katman: core'un üstünde (palette'i kullanır); core bu modülü import etmez.
 //
 // Her piksel samples×samples alt noktayla örneklenir. Kapsama >= %50 ise
 // piksel düz renk alır; daha az kapsanan kenar pikselleri, ALTINDAKİ opak
@@ -10,8 +11,8 @@
 // selectiveOutline kullan). palette verilirse ara ton en yakın palet
 // rengine oturur — yeni renk üretmemek için önerilir.
 // ============================================================
-import type { Painter } from "./painter.js";
-import { mix, type ColorInput, type RGBA } from "./color.js";
+import type { Painter } from "../core/painter.js";
+import { mix, type ColorInput, type RGBA } from "../core/color.js";
 import { nearestColor } from "../palette/index.js";
 
 export interface AAOptions {
