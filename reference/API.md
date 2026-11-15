@@ -368,7 +368,7 @@ Testler: ../tests/pixel-logic.test.mjs; görsel: ../demo/pixel-logic.ts.
 
 `outline` gibi: şekil bittikten sonra, tek nesnelik tuvalde çağır.
 
-### Anti-aliasing (`src/core/aa.ts`)
+### Anti-aliasing (`src/aa/index.ts`)
 
 | Fonksiyon | Ne için |
 |---|---|
@@ -387,7 +387,7 @@ verilince dört uçta 1 piksellik çıkıntı (nub) oluşur. Yarıçapı .5 eksi
 | `ditherRect(p,x,y,w,h,a,b,level,pattern)` | Kutuyu a ile boya, level/16 oranında b. `pattern`: `ordered`, `lines-h`, `lines-v`. |
 | `ditherBands(p,x,y,w,h,colors,{axis='y', levels=3, pattern})` | Bantlı geçiş: her renk çifti arasında düz bant + ara dither bantları. |
 
-### Subpiksel ve izometrik
+### Subpiksel ve izometrik (`src/subpixel/index.ts`, `src/iso/index.ts`)
 
 | Fonksiyon | Ne için |
 |---|---|
