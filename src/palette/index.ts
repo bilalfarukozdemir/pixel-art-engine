@@ -58,9 +58,11 @@ function satAt(s0: number, t: number, side: "dark" | "light", curve: SaturationC
 
 /**
  * Tek bir temel renkten koyudan açığa sıralı renk rampası üretir.
- * Temel renk rampada aynen yer alır (index: Math.floor(steps/2)).
+ * Temel renk rampada aynen yer alır (index: Math.floor(steps/2)); temelin
+ * alfası bütün rampaya taşınır (yarı saydam malzeme yarı saydam kalır).
  * Koyu taraf SHADOW_HUE'ya, açık taraf HIGHLIGHT_HUE'ya doğru kayar.
- * Dönen dizinin luma değeri soldan sağa artar (testle garanti).
+ * Luma soldan sağa hiçbir seçenekte azalmaz; temel saf siyah değilse koyu
+ * taraf, saf beyaz değilse açık taraf kesin artar (testle garanti).
  */
 export function hueRamp(base: ColorInput, opts: RampOptions = {}): RGBA[] {
   const n = opts.steps ?? 5;
@@ -79,7 +81,7 @@ export function hueRamp(base: ColorInput, opts: RampOptions = {}): RGBA[] {
   const B = hex(base);
   const out: RGBA[] = [];
   for (let i = 0; i < n; i++) {
-    if (i === mid) { out.push([B[0], B[1], B[2], 255]); continue; }
+    if (i === mid) { out.push([B[0], B[1], B[2], B[3]]); continue; }
     if (i < mid) {
       const t = (mid - i) / mid;
       const v = v0 - (v0 - vMin) * t;
@@ -109,7 +111,42 @@ export function hueRamp(base: ColorInput, opts: RampOptions = {}): RGBA[] {
       out[i] = fromHsv(h, s * 0.97, Math.min(1, v + 0.02));
     }
   }
+  // Uç seçeneklerde (ör. darkest≈1, vividHighlights) yukarıdaki adım sınırı sırayı
+  // kuramayabilir. Kalan ihlalleri kesin çöz; döngünün çözdüğü rampalara dokunulmaz.
+  for (let i = mid - 1; i >= 0; i--) out[i] = darkerThan(out[i], luma(out[i + 1]));
+  for (let i = mid + 1; i < n; i++) out[i] = lighterThan(out[i], luma(out[i - 1]));
+  return out.map((c) => [c[0], c[1], c[2], B[3]] as RGBA);
+}
+
+/** c'yi luma'sı target'ın altına inene kadar koyulaştırır (ton ve doygunluk sabit). target=0 → siyah. */
+function darkerThan(c: RGBA, target: number): RGBA {
+  if (luma(c) < target) return c;
+  const [h, s, v] = toHsv(c);
+  if (target <= 0) return fromHsv(h, s, 0);
+  // Sabit ton/doygunlukta luma, değer (v) ile doğru orantılı: doğrudan ölçekle, yuvarlamayı adımla düzelt.
+  let vv = Math.min(v, (v * target) / luma(c)) * 0.98;
+  let out = fromHsv(h, s, vv);
+  while (luma(out) >= target && vv > 0) { vv = Math.max(0, vv - 1 / 255); out = fromHsv(h, s, vv); }
   return out;
+}
+
+/** c'yi luma'sı target'ın üstüne çıkana kadar açar: önce değeri, yetmezse doygunluğu düşürerek. target=1 → beyaz. */
+function lighterThan(c: RGBA, target: number): RGBA {
+  if (luma(c) > target) return c;
+  const [h, s, v] = toHsv(c);
+  if (target >= 1) return fromHsv(h, 0, 1);
+  const lc = luma(c);
+  let vv = lc > 0 ? Math.min(1, ((v * target) / lc) * 1.02) : 1;
+  let out = fromHsv(h, s, vv);
+  while (luma(out) <= target && vv < 1) { vv = Math.min(1, vv + 1 / 255); out = fromHsv(h, s, vv); }
+  if (luma(out) > target) return out;
+  // v=1'de bile yetmiyorsa doygunluğu azalt: beyaza yaklaştıkça luma artar (beyaz = 1 > target).
+  let lo = 0, hi = s;
+  for (let k = 0; k < 24; k++) {
+    const m = (lo + hi) / 2;
+    if (luma(fromHsv(h, m, 1)) > target) lo = m; else hi = m;
+  }
+  return fromHsv(h, lo, 1);
 }
 
 /**
