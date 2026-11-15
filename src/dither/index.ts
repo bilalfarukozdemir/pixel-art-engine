@@ -1,7 +1,7 @@
 // ============================================================
 // Dithering — sınırlı renkle geçiş yanılsaması. Kaynak: recipes/dithering.md.
 //
-// Sıralı (ordered) 4x4 Bayer deseni kitaptaki "dama ailesi"ni verir:
+// Sıralı (ordered) 4x4 Bayer deseni "dama tahtası ailesi"ni verir:
 // level 0..16 → 16'da kaç piksel ikinci renk. 8 = tam dama tahtası.
 // Bu desenlerde azınlık pikselleri hiçbir zaman yan yana gelmez
 // (2x1 "geniş piksel" oluşmaz). Desen mutlak koordinata bağlıdır,

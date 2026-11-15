@@ -62,8 +62,10 @@ function slimeAfter(): Painter {
 // ---- 3. Eğri ----
 function curve(clean: boolean): Painter {
   const c = new Painter(34, 26);
-  if (clean) runCurve(c, 2, 22, [4, 3, 2, 1, 1, 1, 1], [2, 3, 4, 8], 1, -1, "#2b1d24");
-  else runCurve(c, 2, 22, [4, 3, 2, 1, 1, 1], [2, 1, 3, 2, 3, 8], 1, -1, "#2b1d24");
+  // Temiz: ellipse(…, 11.5, 8.5) dış konturunun sol üst çeyreği (motorun kendi eğrisi).
+  // Bozuk: aynı adımlar karıştırılmış; kısa adımlar uzunların arasına sıkışıyor.
+  if (clean) runCurve(c, 4, 20, [3, 2, 1, 1], [2, 3, 4], 1, -1, "#2b1d24");
+  else runCurve(c, 4, 20, [3, 1, 2], [2, 1, 3, 4], 1, -1, "#2b1d24");
   return c;
 }
 

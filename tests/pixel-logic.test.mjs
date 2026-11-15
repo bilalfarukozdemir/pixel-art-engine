@@ -69,10 +69,11 @@ test('stairs draws equal steps and validates',()=>{
   for(let i=0;i<5;i++){ assert.equal(p.get(2*i,i)[3],255); assert.equal(p.get(2*i+1,i)[3],255); assert.equal(p.get(2*i+2,i)[3],0); }
   assert.throws(()=>stairs(p,0,0,2,2,3,INK),RangeError);
 });
-test('runCurve follows the book example and curveRunIssues finds bad steps',()=>{
-  assert.deepEqual(curveRunIssues([4,3,2,1,1,1,1],[2,3,4,8]),[]);
-  assert.deepEqual(curveRunIssues([4,3,2,1,1,1],[2,1,3,2,3,8]),[{axis:'h',index:1},{axis:'h',index:3}]);
-  const p=new Painter(32,32); runCurve(p,0,20,[4,3,2,1,1,1,1],[2,3,4,8],1,-1,INK);
+test('runCurve follows the engine ellipse example and curveRunIssues finds bad steps',()=>{
+  // recipes/line-art.md: ellipse(…,11.5,8.5) sol üst çeyreği 3-2-1-1-2-3-4; bozuk hâli 3-1-2 / 2-1-3-4
+  assert.deepEqual(curveRunIssues([3,2,1,1],[2,3,4]),[]);
+  assert.deepEqual(curveRunIssues([3,1,2],[2,1,3,4]),[{axis:'v',index:2},{axis:'h',index:1}]);
+  const p=new Painter(32,32); runCurve(p,2,22,[3,2,1,1],[2,3,4],1,-1,INK);
   assert.equal(lintSprite(p).counts.jaggy,0);
   assert.equal(lintSprite(p).counts.double,0);
 });
