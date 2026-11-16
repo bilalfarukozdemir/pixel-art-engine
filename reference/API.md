@@ -345,7 +345,7 @@ Testler: ../tests/pixel-logic.test.mjs; görsel: ../demo/pixel-logic.ts.
 | `toHsv(c)` / `fromHsv(h,s,v,a?)` | HSV dönüşümü (h 0..360, s/v 0..1). |
 | `luma(c)` | Algısal parlaklık 0..1. Rampa sırası, kontrast. |
 | `colorDistance(a,b)` | Ağırlıklı RGB uzaklığı; ~20 altı küçük sprite'ta ayırt edilmez. |
-| `hueRamp(base, {steps=5, hueShift=36, darkest=0.2, lightest=0.97, saturation='arc'})` | Koyudan açığa rampa. Gölge `SHADOW_HUE` (255°), ışık `HIGHLIGHT_HUE` (60°) yönüne en kısa yoldan kayar. `base` ortada (index `floor(steps/2)`) aynen durur; luma soldan sağa artar. |
+| `hueRamp(base, {steps=5, hueShift=36, darkest=0.2, lightest=0.97, saturation='arc'})` | Koyudan açığa rampa. Gölge `SHADOW_HUE` (255°), ışık `HIGHLIGHT_HUE` (60°) yönüne en kısa yoldan kayar. `base` ortada (index `floor(steps/2)`) aynen durur; alfası bütün rampaya taşınır. Luma hiçbir seçenekte soldan sağa azalmaz; yalnız saf siyah tabanın koyu tarafı ve saf beyaz tabanın açık tarafı tabana eşit kalabilir, gerisi kesin artar. |
 | `hueToward(h, target, deg)` | Tonu hedefe en fazla deg derece yaklaştırır. |
 | `inkOf(c, value=0.16)` | Saf siyah yerine koyu, renkli kontur/göz tonu. |
 | `paletteOf(p)` | Benzersiz opak renkler, koyudan açığa. |
