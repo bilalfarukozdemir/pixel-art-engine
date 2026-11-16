@@ -23,8 +23,12 @@
 ## Kurallar
 
 - Çizim çekirdeği (`src/`) bağımlılıksız kalır; yeni paket eklemeden önce Issue'da konuşun.
-- Antialiasing yok: çekirdek keskin piksel üretir, yumuşatma yalnız `downsample` gibi
-  açık yardımcılarla yapılır.
+- `src/core/` en alt katmandır: core dışındaki modülleri (`palette/`, `fx/` vb.) import
+  etmez. Bu kural `tests/layers.test.mjs` ile korunur.
+- Alfa karışımlı/bulanık AA yok; palet tabanlı açık AA yardımcıları serbest.
+  Çekirdek keskin piksel üretir; yumuşatma yalnız açıkça çağrılan yardımcılarla
+  yapılır: `downsample` ve opak, en fazla 2 ara ton üreten `aaEllipse` / `aaPoly`
+  (`palette` verilirse ara tonlar palete oturur).
 - Yeni bir yardımcı ekliyorsan `reference/API.md`'yi, yeni bir teknikse ilgili
   `recipes/` notunu güncelle.
 - Yeni davranış için `tests/` altına test ekle.

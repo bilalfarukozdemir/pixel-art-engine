@@ -1,6 +1,7 @@
 // ============================================================
 // Subpiksel kaydırma — "0.5 piksel" ara kare taslağı.
-// Kaynak: recipes/subpixel.md (kitaptaki "hızlı ama ucuz" yöntem).
+// Kaynak: recipes/subpixel.md.
+// Katman: core'un üstünde (palette'i kullanır); core bu modülü import etmez.
 //
 // Adımlar: 2x en-yakın büyüt → 1 yüksek-çözünürlük pikseli (= yarım piksel)
 // kaydır → kutu filtresiyle 1x'e küçült → sprite'ın KENDİ paletine indir.
@@ -8,9 +9,9 @@
 // Değer (parlaklık) kayma yönündeki komşu piksele taşınır; renk paletten
 // seçildiği için yeni renk oluşmaz.
 // ============================================================
-import { Painter } from "./painter.js";
-import type { ColorInput } from "./color.js";
-import { downsample } from "./resample.js";
+import { Painter } from "../core/painter.js";
+import type { ColorInput } from "../core/color.js";
+import { downsample } from "../core/resample.js";
 import { paletteOf, quantize } from "../palette/index.js";
 
 export interface SubpixelOptions {
