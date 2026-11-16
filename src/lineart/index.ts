@@ -4,7 +4,8 @@
 //
 // Piksel çizgisi, aynı uzunlukta adımlardan oluştuğunda pürüzsüz görünür
 // (1:1, 2:1, 3:1 ...). Eğri ise adımların tek yönde değiştiği bir dizidir:
-// dikey kısımda adımlar kısalır, yatay kısımda uzar. Örn. 4-3-2-1-1-1-1-2-3-4-8.
+// dikey kısımda adımlar kısalır, yatay kısımda uzar. Motor örneği:
+// ellipse(cx, cy, 11.5, 8.5) dış konturunun sol üst çeyreği 3-2-1-1-2-3-4.
 // Bu modül eğriyi adım uzunluklarıyla tarif etmeyi sağlar; böylece
 // "jaggy" (düzensiz adım) baştan oluşmaz.
 // ============================================================
@@ -37,8 +38,8 @@ export function stairs(p: Painter, x: number, y: number, stepW: number, stepH: n
 /**
  * Adım uzunluklarıyla tarif edilen çeyrek eğri: önce dikey koşular (vRuns),
  * sonra yatay koşular (hRuns). Her koşu bir öncekine çapraz bağlanır.
- * dx/dy ilerleme yönleri. Kitaptaki iyi örnek:
- *   runCurve(p, x, y, [4,3,2,1,1,1,1], [2,3,4,8], 1, 1, ink)
+ * dx/dy ilerleme yönleri. Motor örneği (ellipse 11.5x8.5 sol üst çeyreği,
+ * soldan tepeye): runCurve(p, x, y, [3,2,1,1], [2,3,4], 1, -1, ink)
  * Bitiş noktasını döner (son pikselden bir çapraz adım sonrası).
  */
 export function runCurve(p: Painter, x: number, y: number, vRuns: ReadonlyArray<number>,
